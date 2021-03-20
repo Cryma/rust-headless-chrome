@@ -79,6 +79,9 @@ pub struct LaunchOptions<'a> {
     #[builder(default = "None")]
     path: Option<std::path::PathBuf>,
 
+    #[builder(default = "None")]
+    remote_debugging_address: Option<String>,
+
     /// A list of Chrome extensions to load.
     ///
     /// An extension should be a path to a folder containing the extension code.
@@ -116,7 +119,7 @@ impl<'a> LaunchOptions<'a> {
 
 /// These are passed to the Chrome binary by default.
 /// Via https://github.com/GoogleChrome/puppeteer/blob/master/lib/Launcher.js#L38
-static DEFAULT_ARGS: [&str; 25] = [
+static DEFAULT_ARGS: [&str; 24] = [
     "--disable-background-networking",
     "--enable-features=NetworkService,NetworkServiceInProcess",
     "--disable-background-timer-throttling",
@@ -141,7 +144,6 @@ static DEFAULT_ARGS: [&str; 25] = [
     "--enable-automation",
     "--password-store=basic",
     "--use-mock-keychain",
-    "--remote-debugging-address=0.0.0.0",
     "--no-sandbox",
 ];
 
@@ -220,6 +222,13 @@ impl Process {
             .tempdir()?;
         let data_dir_option = format!("--user-data-dir={}", user_data_dir.path().to_str().unwrap());
 
+        let remote_debugging_address = match &launch_options.remote_debugging_address {
+            Some(value) => value,
+            None => "0.0.0.0",
+        };
+
+        let remote_debugging_address_argument = format!("--remote-debugging-address={}", remote_debugging_address);
+
         trace!("Chrome will have profile: {}", data_dir_option);
 
         let mut args = vec![
@@ -230,6 +239,7 @@ impl Process {
             "--log-level=0",
             "--no-first-run",
             "--disable-audio-output",
+            &remote_debugging_address_argument,
             data_dir_option.as_str(),
         ];
 
